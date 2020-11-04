@@ -30,9 +30,9 @@ float deltaTime = 0.001f;
 
 
 /* Camera things*/
-glm::vec3 cameraPos = glm::vec3(0.0f, 55.0f, -80.0f);
-glm::vec3 cameraFront = glm::vec3(0.f, -1.0f, 40.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 3.0f, 1.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 35.0f, -5.0f);
+glm::vec3 cameraFront = glm::vec3(50.f, -1.0f, 50.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 50.0f, 1.0f);
 glm::vec3 cameraRight = glm::vec3(3.0f, 0.0f, 0.0f);
 glm::vec2 mouseAngles = glm::vec2(0, 0);
 
@@ -40,7 +40,7 @@ float horizontal = 3.14f;
 float vertical = 0.0f;
 
 float cameraDepth = 10000.f;
-float cameraSpeed = 2.f;
+float cameraSpeed = 4.f;
 float cameraSpeedScale = 40.f;
 float moveMult = 5.0f;
 float mouseSpeed = 0.0f;
@@ -139,11 +139,11 @@ void buildObstacles();
 
 vector<Mesh2D*> mObstacleMeshes;
 vector<pair<glm::vec2, float>> mObstacles;
-int mNumObstacles = 50;
-float mMaxRadius = 50.f;
+int mNumObstacles = 10;
+float mMaxRadius = 10.f;
 float mMinRadius = 2.f;
 float mObsHeight = 20.f;
-const char* mObstacleTexture = "backgroundTexture.jpg";
+const char* mObstacleTexture = "obstacleTexture.jpg";
 
 /* Planning things */
 void buildRRTStar();

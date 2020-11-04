@@ -113,6 +113,7 @@ void drag(int x, int y) {
 void buildEnvironment() {
     calculateFloorTransform();
     buildFloor();
+    buildObstacles();
 }
 
 void buildFloor() {
@@ -123,28 +124,28 @@ void buildFloor() {
     }
 
     vector<Vertex> verts;
-    glm::vec3 pos = mFloorTransformation * glm::vec3(-mFloorWidth / 2, 0.f, mFloorHeight / 2);
+    glm::vec3 pos = mFloorTransformation * glm::vec3(0, 0.f, mFloorHeight);
     glm::vec3 norm = glm::vec3(0.f, 1.f, 0.f);
     glm::vec2 tex = glm::vec2(0.f, 1.f);
     glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
     glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(mFloorWidth / 2, 0.f, mFloorHeight / 2);
+    pos = mFloorTransformation * glm::vec3(mFloorWidth, 0.f, mFloorHeight);
     norm = glm::vec3(0.f, 1.f, 0.f);
     tex = glm::vec2(1.f, 1.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
     acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(mFloorWidth / 2, 0.f, -mFloorHeight / 2);
+    pos = mFloorTransformation * glm::vec3(mFloorWidth, 0.f, 0);
     norm = glm::vec3(0.f, 1.f, 0.f);
     tex = glm::vec2(1.f, 0.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
     acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(-mFloorWidth / 2, 0.f, -mFloorHeight / 2);
+    pos = mFloorTransformation * glm::vec3(0, 0.f, 0);
     norm = glm::vec3(0.f, 1.f, 0.f);
     tex = glm::vec2(0.f, 0.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
@@ -152,7 +153,7 @@ void buildFloor() {
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
     vector<unsigned int> indices;
-    indices = { 0, 1, 3, 3, 2, 1 };
+    indices = { 1, 0, 2, 2, 3, 0 };
 
     mFloor = new Mesh2D(verts, indices, mFloorTexture);
 
@@ -160,36 +161,30 @@ void buildFloor() {
 
 void calculateFloorTransform() {
     glm::vec3 v1;
-    if (mFloorNormal.z != 0) {
-        v1.x = 1;
-        v1.y = 1;
-        v1.z = -1 * (mFloorNormal.x + mFloorNormal.y) / mFloorNormal.z;
-    } else if (mFloorNormal.y != 0) {
-        v1.x = 1;
-        v1.z = 1;
-        v1.y = -1 * (mFloorNormal.x + mFloorNormal.z) / mFloorNormal.y;
-    } else if (mFloorNormal.x != 0) {
-        v1.z = 1;
-        v1.y = 1;
-        v1.x = -1 * (mFloorNormal.z + mFloorNormal.y) / mFloorNormal.x;
-    }
-    v1 *= (1 / length(v1));
-
     glm::vec3 v2;
     if (mFloorNormal.z != 0) {
-        v2.x = 1;
-        v2.y = (v1.z * mFloorNormal.x - v1.x * mFloorNormal.z) / (v1.y * mFloorNormal.z - v1.y * mFloorNormal.y);
-        v2.z = -1 * (mFloorNormal.x + mFloorNormal.y * v2.y) / mFloorNormal.z;
+        v1.x = 1;
+        v1.y = 0;
+        v1.z = -mFloorNormal.x / mFloorNormal.z;
+
+        v2 = glm::cross(mFloorNormal, v1);
+
     } else if (mFloorNormal.x != 0) {
-        v2.z = 1;
-        v2.y = (v1.x * mFloorNormal.x - v1.z * mFloorNormal.x) / (v1.y * mFloorNormal.x - v1.y * mFloorNormal.y);
-        v2.x = -1 * (mFloorNormal.z + mFloorNormal.y * v2.y) / mFloorNormal.x;
+        v1.x = -mFloorNormal.z / mFloorNormal.x;
+        v1.y = 0;
+        v1.z = 1;
+
+        v2 = glm::cross(mFloorNormal, v1);
     } else if (mFloorNormal.y != 0) {
-        v2.x = 1;
-        v2.z = (v1.y * mFloorNormal.x - v1.x * mFloorNormal.y) / (v1.z * mFloorNormal.y - v1.z * mFloorNormal.z);
-        v2.y = -1 * (mFloorNormal.x + mFloorNormal.z * v2.z) / mFloorNormal.y;
+        v1.x = 0;
+        v1.y = -mFloorNormal.z / mFloorNormal.y;
+        v1.z = 1;
+
+        v2 = glm::cross(mFloorNormal, v1);
     }
-    v2 *= (1 / length(v2));
+
+    if (length(v1) > 0) v1 *= (1 / length(v1));
+    if (length(v2) > 0) v2 *= (1 / length(v2));
 
     mFloorTransformation = glm::mat3(1.f);
     mFloorTransformation[0][0] = mFloorNormal.x;
@@ -204,9 +199,9 @@ void calculateFloorTransform() {
     mFloorTransformation[1][2] = v2.z;
     mFloorTransformation[2][2] = v2.y;
 
-    cout << "| " << mFloorTransformation[0][0] << "  " << mFloorTransformation[1][0] << "  " << mFloorTransformation[2][0] << " |" << endl;
-    cout << "| " << mFloorTransformation[0][1] << "  " << mFloorTransformation[1][1] << "  " << mFloorTransformation[2][1] << " |" << endl;
-    cout << "| " << mFloorTransformation[0][2] << "  " << mFloorTransformation[1][2] << "  " << mFloorTransformation[2][2] << " |\n" << endl;
+    cout << "| " << mFloorTransformation[0][0] << "  " << mFloorTransformation[0][1] << "  " << mFloorTransformation[0][2] << " |" << endl;
+    cout << "| " << mFloorTransformation[1][0] << "  " << mFloorTransformation[1][1] << "  " << mFloorTransformation[1][2] << " |" << endl;
+    cout << "| " << mFloorTransformation[2][0] << "  " << mFloorTransformation[2][1] << "  " << mFloorTransformation[2][2] << " |\n" << endl;
 }
 
 void buildObstacles() {
@@ -217,56 +212,56 @@ void buildObstacles() {
 
         vector<Vertex> verts;
         glm::vec3 pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, 0, centerpos.y + sideLength / 2);
-        glm::vec3 norm = glm::vec3(0.f, 0.f, -1.f);
+        glm::vec3 norm = -1.f * normalize(pos);
         glm::vec2 tex = glm::vec2(0.f, 1.f);
         glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
         glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, 0, centerpos.y + sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, -1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, 0, centerpos.y + sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, -1.f);
+        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, mObsHeight, centerpos.y + sideLength / 2);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, mObsHeight, centerpos.y + sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, -1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, 0, centerpos.y - sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, 1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, 0, centerpos.y - sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, 1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, mObsHeight, centerpos.y - sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, 1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
         pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, mObsHeight, centerpos.y - sideLength / 2);
-        norm = glm::vec3(0.f, 0.f, 1.f);
+        norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
@@ -292,10 +287,25 @@ void buildRRTStar() {
 
     mObstacles.clear();
     for (int i = 0; i < mNumObstacles; i++) {
-        glm::vec2 obsPos = glm::vec2(rand() % (int)mWidth, rand() % (int)mHeight);
+        glm::vec2 obsPos = glm::vec2(rand() % (int)(mFloorWidth - 2 * mMaxRadius), rand() % (int)(mFloorHeight - 2 * mMaxRadius)) + glm::vec2(mMaxRadius, mMaxRadius);
         float radius = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
+       /* glm::vec2 obsPos = glm::vec2(-1.f, -1.f);
+        float radius = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
+        bool available = false;
+        while (!available) {
+            obsPos = glm::vec2(rand() % (int)mFloorWidth, rand() % (int)mFloorHeight);
+            bool notAvailable = false;
+            for (auto obs : mObstacles) {
+                if ((obs.first - obsPos).length() < obs.second + radius) {
+                    notAvailable = true;
+                    break;
+                }
+            }
+            available = !notAvailable;
+        }*/
         mObstacles.push_back(make_pair(obsPos, radius));
         mMyRRTStar->addObstacle(obsPos, radius);
+        cout << "building obstacle at (" << obsPos.x << ", " << obsPos.y << ")" << endl;
     }
 
 	vector<glm::vec2> solution = mMyRRTStar->start();
@@ -328,6 +338,9 @@ void display() {
 
    //draw meshes
     if (mFloor) mFloor->draw();
+    for (auto it : mObstacleMeshes) {
+        it->draw();
+    }
 
     glutSwapBuffers();
 
@@ -437,8 +450,8 @@ int main(int argc, char* argv[]) {
     glewInit();
     initShader();
 
+    buildRRTStar();
     buildEnvironment();
-    //buildRRTStar();
 
     /*interactions stuff*/
     glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses  
