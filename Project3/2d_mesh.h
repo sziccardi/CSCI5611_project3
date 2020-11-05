@@ -21,6 +21,8 @@ public:
 
     int getNumVerts() { return mVerts.size(); }
 
+    void updateVerts(glm::vec3 diff);
+
 protected:
     vector<Vertex> mVerts;
     vector<unsigned int> mIndices;

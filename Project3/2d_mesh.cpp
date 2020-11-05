@@ -48,6 +48,12 @@ void Mesh2D::setVertAt(int iter, Vertex value) {
     }
 }
 
+void Mesh2D::updateVerts(glm::vec3 diff) {
+    for (int i = 0; i < mVerts.size(); i++) {
+        mVerts[i].mPosition += diff;
+    }
+}
+
 void Mesh2D::setupMesh() {
     glGenVertexArrays(1, &VAO);
     glCheckError();

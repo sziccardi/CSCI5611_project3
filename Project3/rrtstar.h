@@ -40,6 +40,9 @@ public:
 	int getNumNodes();
 	int getIsSuccessful();
 
+	glm::vec3 nextAvailablePos(glm::vec2 currentPos, float agentRad);
+	bool isVisible(glm::vec2 pos1, float distBetween, glm::vec2 pos2);
+
 	void addObstacle(glm::vec2 pos, float radius);
 	vector<glm::vec2> start();
 

@@ -359,6 +359,97 @@ void buildSolution() {
 
 }
 
+void buildAgent() {
+    if (mAgent) {
+        auto a = mAgent;
+        delete(a);
+        mAgent = nullptr;
+    }
+
+    float sideLength = sqrt(2) * mAgentRadius;
+    mAgentPos = glm::vec3(mStartPos.x , 0.f, mStartPos.y);
+    mAimAt = glm::vec3(mStartPos.x, 0.f, mStartPos.y);
+
+    vector<Vertex> verts;
+    glm::vec3 pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z + sideLength / 2);
+    glm::vec3 norm = -1.f * normalize(pos);
+    glm::vec2 tex = glm::vec2(0.f, 1.f);
+    glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
+    glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, 0, mAgentPos.z + sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, mObsHeight, mAgentPos.z + sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, mObsHeight, mAgentPos.z + sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z - sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, 0, mAgentPos.z - sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, mObsHeight, mAgentPos.z - sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, mObsHeight, mAgentPos.z - sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+
+    vector<unsigned int> indices;
+    //              back                front
+    indices = { 1, 0, 2, 2, 3, 0,  5, 4, 6, 6, 7, 4,  0, 1, 4, 4, 5, 1,  1, 2, 5, 5, 6, 2,  2, 3, 6, 6, 7, 3,  3, 0, 7, 7, 4, 0 };
+
+    mAgent = new Mesh2D(verts, indices, mAgentTexture);
+}
+
+
+void updateAgent(float dt) {
+    if (!mMyRRTStar) return;
+
+    mAimAt = mMyRRTStar->nextAvailablePos(mAgentPos, mAgentRadius);
+
+    if (glm::length(mAgentPos - mAimAt) > 1.0f) {
+        auto dir = normalize(mAimAt - mAgentPos);
+        auto diff = dir * mAgentSpeed * dt;
+        mAgentPos += diff;
+
+        mAgent->updateVerts(mFloorTransformation * diff);
+    }
+}
+
 void buildRRTStar() {
 	if (mMyRRTStar) {
 		auto r = mMyRRTStar;
@@ -427,6 +518,7 @@ void display() {
     for (auto it : mSolutionMeshes) {
         it->draw();
     }
+    if (mAgent) mAgent->draw();
 
     glutSwapBuffers();
 
@@ -521,9 +613,10 @@ void animLoop(int val) {
 
     framesSinceLast += 1;
 
-    for (int i = 0; i < 16; i++) {
+    //for (int i = 0; i < 16; i++) {
         //update
-    }
+        updateAgent(0.016f);
+    //}
 
     glutPostRedisplay();
     glutTimerFunc(16, animLoop, 1);
@@ -541,6 +634,7 @@ int main(int argc, char* argv[]) {
 
     buildRRTStar();
     buildEnvironment();
+    buildAgent();
 
     /*interactions stuff*/
     glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses  

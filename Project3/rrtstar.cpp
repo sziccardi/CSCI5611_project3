@@ -30,6 +30,49 @@ void RRTStar::setNumVertices(int numVerts) { mNumVertices = numVerts; }
 int RRTStar::getNumNodes() { return myTree->getTreeSize(); }
 int RRTStar::getIsSuccessful() { return (mSolutionPath.size() > 0); }
 
+glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
+	glm::vec3 nextPos = glm::vec3(0.f, 0.f, 0.f);
+	for (std::vector<glm::vec2>::reverse_iterator it = mSolutionPath.rbegin(); it != mSolutionPath.rend(); ++it) {
+		auto pos = *it;
+		if (isVisible(currentPos, agentRad, pos)) {
+			nextPos = glm::vec3(pos.x, 0.f, pos.y);
+		}
+	}
+	return nextPos;
+}
+
+bool RRTStar::isVisible(glm::vec2 pos1, float agentRad, glm::vec2 pos2) {
+	for (auto obs : mObstacles) {
+		bool intersected = false;
+		//Compute displacement vector pointing from the start of the line segment to the center of the circle
+		glm::vec2 l_dir = normalize(pos2 - pos1);
+		glm::vec2 toCircle = obs.first - pos1;
+
+		//Solve quadratic equation for intersection point (in terms of l_dir and toCircle)
+		float a = glm::length(l_dir);
+		float b = -2 * dot(l_dir, toCircle); //-2*dot(l_dir,toCircle)
+		float c = glm::length(toCircle) * glm::length(toCircle) - (obs.second + agentRad) * (obs.second + agentRad); //different of squared distances
+
+		float d = b * b - 4 * a * c; //discriminant 
+
+		if (d >= 0) {
+			//If d is positive we know the line is colliding, but we need to check if the collision line within the line segment
+			//  ... this means t will be between 0 and the length of the line segment
+			float t1 = (-b - sqrt(d)) / (2 * a);
+			float t2 = (-b + sqrt(d)) / (2 * a);
+			//println(hit.t,t1,t2);
+			if (t1 > 0 && t1 < 1) { //We intersect the circle
+				return false;
+			}
+			else if (t1 < 0 && t2 > 0) { //We start in the circle
+				return false;
+			}
+
+		}
+	}
+	return true;
+}
+
 void RRTStar::addObstacle(glm::vec2 pos, float radius) {
 	mObstacles.push_back(make_pair(pos, radius));
 }

@@ -139,14 +139,16 @@ void buildObstacles();
 
 vector<Mesh2D*> mObstacleMeshes;
 vector<pair<glm::vec2, float>> mObstacles;
-int mNumObstacles = 10;
+int mNumObstacles = 30;
 float mMaxRadius = 10.f;
 float mMinRadius = 2.f;
-float mObsHeight = 20.f;
+float mObsHeight = 10.f;
 const char* mObstacleTexture = "obstacleTexture.jpg";
 
 /* Planning things */
 void buildSolution();
+void buildAgent();
+void updateAgent(float dt);
 void buildRRTStar();
 
 RRTStar* mMyRRTStar = nullptr;
@@ -154,6 +156,14 @@ int mNumVerts = 1000;
 
 glm::vec2 mStartPos = glm::vec2(0.f, mFloorHeight/2.f);
 glm::vec2 mGoalPos = glm::vec2(mFloorWidth, mFloorHeight/2.f);
+
+Mesh2D* mAgent = nullptr;
+float mAgentRadius = 5.f;
+float mAgentHeight = 20.f;
+glm::vec3 mAgentPos = glm::vec3(0.f, 0.f, 0.f);
+glm::vec3 mAimAt = glm::vec3(0.f, 0.f, 0.f);
+float mAgentSpeed = 15.f;
+const char* mAgentTexture = "grassTexture.jpg";
 
 float mSolutionMeshThickness = 2.f;
 const char* mSolutionTexture = "tealTexture.jpg";
