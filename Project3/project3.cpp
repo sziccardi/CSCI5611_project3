@@ -114,6 +114,7 @@ void buildEnvironment() {
     calculateFloorTransform();
     buildFloor();
     buildObstacles();
+    buildSolution();
 }
 
 void buildFloor() {
@@ -153,7 +154,7 @@ void buildFloor() {
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
     vector<unsigned int> indices;
-    indices = { 1, 0, 2, 2, 3, 0 };
+    indices = { 0, 1, 3, 3, 2, 1 };
 
     mFloor = new Mesh2D(verts, indices, mFloorTexture);
 
@@ -276,6 +277,88 @@ void buildObstacles() {
     }
 }
 
+void buildSolution() {
+    auto solution = mMyRRTStar->getSolution();
+    for (int i = 0; i < solution.size() - 1; i++) {
+        auto p = solution[i];
+        auto q = solution[i + 1];
+
+        auto perp = glm::vec2(1, -(p - q).x / (p - q).y);
+        perp = normalize(perp);
+
+        auto a = p + perp * mSolutionMeshThickness / 2.f;
+        auto b = q + perp * mSolutionMeshThickness / 2.f;
+        auto c = q - perp * mSolutionMeshThickness / 2.f;
+        auto d = p - perp * mSolutionMeshThickness / 2.f;
+
+        vector<Vertex> verts;
+        glm::vec3 pos = mFloorTransformation * glm::vec3(a.x, 0, a.y);
+        glm::vec3 norm = -1.f * normalize(pos);
+        glm::vec2 tex = glm::vec2(0.f, 1.f);
+        glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
+        glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(b.x, 0, b.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(1.f, 1.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(b.x, mSolutionMeshThickness, b.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(1.f, 0.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(a.x, mSolutionMeshThickness, a.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(0.f, 0.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(d.x, 0, d.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(1.f, 0.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(c.x, 0, c.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(0.f, 0.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(c.x, mSolutionMeshThickness, c.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(0.f, 1.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+        pos = mFloorTransformation * glm::vec3(d.x, mSolutionMeshThickness, d.y);
+        norm = -1.f * normalize(pos);
+        tex = glm::vec2(1.f, 1.f);
+        vel = glm::vec3(0.f, 0.f, 0.f);
+        acc = glm::vec3(0.f, 0.f, 0.f);
+        verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+
+        vector<unsigned int> indices;
+        //              back                front
+        indices = { 1, 0, 2, 2, 3, 0,  5, 4, 6, 6, 7, 4,  0, 1, 4, 4, 5, 1,  1, 2, 5, 5, 6, 2,  2, 3, 6, 6, 7, 3,  3, 0, 7, 7, 4, 0 };
+
+
+        mSolutionMeshes.push_back(new Mesh2D(verts, indices, mSolutionTexture));
+    }
+
+}
+
 void buildRRTStar() {
 	if (mMyRRTStar) {
 		auto r = mMyRRTStar;
@@ -283,7 +366,7 @@ void buildRRTStar() {
 		mMyRRTStar = nullptr;
 	}
 
-	mMyRRTStar = new RRTStar((int) mWidth, (int) mHeight, mStartPos, mGoalPos, mNumVerts);
+	mMyRRTStar = new RRTStar((int)mFloorWidth, (int)mFloorHeight, mStartPos, mGoalPos, mNumVerts);
 
     mObstacles.clear();
     for (int i = 0; i < mNumObstacles; i++) {
@@ -340,6 +423,9 @@ void display() {
     if (mFloor) mFloor->draw();
     for (auto it : mObstacleMeshes) {
         it->draw();
+    }    
+    for (auto it : mSolutionMeshes) {
+        it->draw();
     }
 
     glutSwapBuffers();
@@ -354,6 +440,9 @@ void display() {
         framesSinceLast = 0;
         cout << "FPS: " << fps;
         int totalVerts = 0;
+        totalVerts += mSolutionMeshes.size() * 8;
+        totalVerts += mObstacleMeshes.size() * 8;
+        totalVerts += mFloor->getNumVerts();
         cout << "\t Vertices: ";
         cout << totalVerts << endl;
     }
@@ -363,7 +452,7 @@ void initGL() {
     glutInitDisplayMode(GLUT_DOUBLE);
     glutInitWindowSize(908, 640);
     glutInitWindowPosition(50, 50);
-    glutCreateWindow("5611 Project 2");
+    glutCreateWindow("5611 Project 3");
     glutDisplayFunc(display); // declaring the "draw" function
     glutReshapeFunc(reshape);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

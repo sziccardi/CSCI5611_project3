@@ -128,7 +128,7 @@ void buildFloor();
 void calculateFloorTransform();
 
 Mesh2D* mFloor = nullptr;
-const char* mFloorTexture = "floorTexture.jpg";
+const char* mFloorTexture = "purpleTexture.png";
 float mFloorHeight = 300.f;
 float mFloorWidth = 300.f;
 glm::vec3 mFloorNormal = glm::vec3(0, 1, 0);
@@ -146,11 +146,16 @@ float mObsHeight = 20.f;
 const char* mObstacleTexture = "obstacleTexture.jpg";
 
 /* Planning things */
+void buildSolution();
 void buildRRTStar();
 
 RRTStar* mMyRRTStar = nullptr;
 int mNumVerts = 1000;
 
-glm::vec2 mStartPos = glm::vec2(0.f, 300.f); 
-glm::vec2 mGoalPos = glm::vec2(600.f, 300.f);
+glm::vec2 mStartPos = glm::vec2(0.f, mFloorHeight/2.f);
+glm::vec2 mGoalPos = glm::vec2(mFloorWidth, mFloorHeight/2.f);
+
+float mSolutionMeshThickness = 2.f;
+const char* mSolutionTexture = "tealTexture.jpg";
+vector<Mesh2D*> mSolutionMeshes;
 

@@ -45,6 +45,8 @@ public:
 
 	vector<glm::vec2> start(glm::vec2 means, float sxx, float syy, float sxy);
 
+	vector<glm::vec2> getSolution() { return mSolutionPath; }
+
 	void draw();
 
 	bool mUseDist = false;
