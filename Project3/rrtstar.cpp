@@ -32,52 +32,76 @@ int RRTStar::getIsSuccessful() { return (mSolutionPath.size() > 0); }
 
 glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
 	glm::vec3 nextPos = glm::vec3(0.f, 0.f, 0.f);
-	for (std::vector<glm::vec2>::reverse_iterator it = mSolutionPath.rbegin(); it != mSolutionPath.rend(); ++it) {
-		auto pos = *it;
-		if (isVisible(currentPos, agentRad, pos)) {
-			nextPos = glm::vec3(pos.x, 0.f, pos.y);
+	bool foundAimPos = false;
+	//is goal visible?
+	glm::vec2 goalray = mGoalPos - currentPos;
+	bool goalcollides = false;
+	for (auto obs : mObstacles) {
+		goalcollides = collides(obs.first, obs.second + agentRad, currentPos, glm::normalize(goalray), glm::length(goalray));
+		if (goalcollides) {
+			break;
+		}
+	}
+	if (!goalcollides) {
+		return glm::vec3(mGoalPos.x, 0.f, mGoalPos.y);
+	}
+
+	//for (std::vector<glm::vec2>::reverse_iterator it = mSolutionPath.rbegin() + 1; it != mSolutionPath.rend(); ++it) {
+	for (auto it : mSolutionPath) {
+		if (mCurrentAimIter < mSolutionPath.size() - 1) {
+			//check next
+			int tempIter = mCurrentAimIter + 1;
+			glm::vec2 ray = mSolutionPath[mSolutionPath.size() - 1 - tempIter] - currentPos;
+			bool collided = true;
+			for (auto obs : mObstacles) {
+				collided = collides(obs.first, obs.second + agentRad, currentPos, normalize(ray), glm::length(ray));
+				if (collided) break;
+			}
+			if (!collided) {
+				mCurrentAimIter = tempIter;
+				nextPos = glm::vec3(mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].x, 0.f, mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].y);
+			}
 		}
 	}
 	return nextPos;
 }
 
-bool RRTStar::isVisible(glm::vec2 pos1, float agentRad, glm::vec2 pos2) {
-	for (auto obs : mObstacles) {
-		bool intersected = false;
-		//Compute displacement vector pointing from the start of the line segment to the center of the circle
-		glm::vec2 l_dir = normalize(pos2 - pos1);
-		glm::vec2 toCircle = obs.first - pos1;
+bool RRTStar::collides(glm::vec2 center, float r, glm::vec2 l_start, glm::vec2 l_dir, float max_t) {
 
-		//Solve quadratic equation for intersection point (in terms of l_dir and toCircle)
-		float a = glm::length(l_dir);
-		float b = -2 * dot(l_dir, toCircle); //-2*dot(l_dir,toCircle)
-		float c = glm::length(toCircle) * glm::length(toCircle) - (obs.second + agentRad) * (obs.second + agentRad); //different of squared distances
+	//Compute displacement vector pointing from the start of the line segment to the center of the circle
+	glm::vec2 toCircle = center - l_start;
 
-		float d = b * b - 4 * a * c; //discriminant 
+	//Solve quadratic equation for intersection point (in terms of l_dir and toCircle)
+	float a = 1;  //Length of l_dir (we normalized it)
+	float b = -2 * glm::dot(l_dir, toCircle); //-2*dot(l_dir,toCircle)
+	float c = (glm::length(toCircle) * glm::length(toCircle)) - (r * r); //different of squared distances
 
-		if (d >= 0) {
-			//If d is positive we know the line is colliding, but we need to check if the collision line within the line segment
-			//  ... this means t will be between 0 and the length of the line segment
-			float t1 = (-b - sqrt(d)) / (2 * a);
-			float t2 = (-b + sqrt(d)) / (2 * a);
-			//println(hit.t,t1,t2);
-			if (t1 > 0 && t1 < 1) { //We intersect the circle
-				return false;
-			}
-			else if (t1 < 0 && t2 > 0) { //We start in the circle
-				return false;
-			}
+	float d = b * b - 4 * a * c; //discriminant 
 
+	if (d >= 0) {
+		//If d is positive we know the line is colliding, but we need to check if the collision line within the line segment
+		//  ... this means t will be between 0 and the length of the line segment
+		float t1 = (-b - sqrt(d)) / (2 * a); //Optimization: we only need the first collision
+		float t2 = (-b + sqrt(d)) / (2 * a); //Optimization: we only need the first collision
+		//println(hit.t,t1,t2);
+		if (t1 > 0 && t1 < max_t) { //We intersect the circle
+			return true;
 		}
+		else if (t1 < 0 && t2 > 0) { //We start in the circle
+			return true;
+		}
+
 	}
-	return true;
+
+	return false;
 }
 
 void RRTStar::addObstacle(glm::vec2 pos, float radius) {
 	mObstacles.push_back(make_pair(pos, radius));
 }
 
-vector<glm::vec2> RRTStar::start() {
+vector<glm::vec2> RRTStar::start(float agentRad) {
+	mAgentRadius = agentRad;
 	letsBuildRRTStar();
 	return mSolutionPath;
 }
@@ -170,13 +194,13 @@ glm::vec2 RRTStar::newConf(glm::vec2 nearby, glm::vec2 rand) {
 	float tMin = 1;
 	for (auto obstacle : mObstacles) {
 		//what if the segment starts in the obstacle?
-		if (glm::length(obstacle.first - nearby) <= obstacle.second) {
+		if (glm::length(obstacle.first - nearby) <= obstacle.second + mAgentRadius) {
 			return glm::vec2(-1.0, -1.0);
 		}
 
 		float a = glm::length(diffVec) * glm::length(diffVec);
 		float b = -2 * dot((obstacle.first - nearby), diffVec);
-		float c = glm::length(nearby - obstacle.first) * glm::length(nearby - obstacle.first) - obstacle.second * obstacle.second;
+		float c = glm::length(nearby - obstacle.first) * glm::length(nearby - obstacle.first) - (obstacle.second + mAgentRadius) * (obstacle.second + mAgentRadius);
 
 		float d = b * b - 4 * a * c;
 		if (d > 0.0) {
@@ -243,7 +267,7 @@ void RRTStar::letsBuildRRTStar() {
 			newNode = newNode->mParent;
 			mSolutionPath.push_back(newNode->mPosition);
 		}
-		cout << "my solution path has " << mSolutionPath.size() << endl;
+		cout << "my solution path has " << mSolutionPath.size() << " points" << endl;
 	}
 }
 

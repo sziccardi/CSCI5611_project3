@@ -41,10 +41,10 @@ public:
 	int getIsSuccessful();
 
 	glm::vec3 nextAvailablePos(glm::vec2 currentPos, float agentRad);
-	bool isVisible(glm::vec2 pos1, float distBetween, glm::vec2 pos2);
+	bool collides(glm::vec2 center, float r, glm::vec2 l_start, glm::vec2 l_dir, float max_t);
 
 	void addObstacle(glm::vec2 pos, float radius);
-	vector<glm::vec2> start();
+	vector<glm::vec2> start(float agentRad);
 
 	vector<glm::vec2> start(glm::vec2 means, float sxx, float syy, float sxy);
 
@@ -69,9 +69,11 @@ private:
 	int mNumVertices = 154;
 	Tree* myTree;
 	vector<glm::vec2> mSolutionPath;
+	int mCurrentAimIter = 0;
 	glm::vec2 mInitPos = glm::vec2(-1.0, -1.0);
 	glm::vec2 mGoalPos = glm::vec2(-1.0, -1.0);
 	vector<pair<glm::vec2, float>> mObstacles;
+	float mAgentRadius = 0.f;
 	float dq = 10;
 	int mWidth = 0;
 	int mHeight = 0;

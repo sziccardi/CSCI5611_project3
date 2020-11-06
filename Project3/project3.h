@@ -139,9 +139,9 @@ void buildObstacles();
 
 vector<Mesh2D*> mObstacleMeshes;
 vector<pair<glm::vec2, float>> mObstacles;
-int mNumObstacles = 30;
-float mMaxRadius = 10.f;
-float mMinRadius = 2.f;
+int mNumObstacles = 15;
+float mMaxRadius = 12.f;
+float mMinRadius = 1.f;
 float mObsHeight = 10.f;
 const char* mObstacleTexture = "obstacleTexture.jpg";
 

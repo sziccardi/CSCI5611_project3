@@ -208,60 +208,60 @@ void calculateFloorTransform() {
 void buildObstacles() {
 
     for (int i = 0; i < mObstacles.size(); i++) {
-        float sideLength = sqrt(2) * mObstacles[i].second;
+        float halfSideLength = mObstacles[i].second;
         glm::vec2 centerpos = mObstacles[i].first;
 
         vector<Vertex> verts;
-        glm::vec3 pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, 0, centerpos.y + sideLength / 2);
+        glm::vec3 pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, 0, centerpos.y + halfSideLength);
         glm::vec3 norm = -1.f * normalize(pos);
         glm::vec2 tex = glm::vec2(0.f, 1.f);
         glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
         glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, 0, centerpos.y + sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, 0, centerpos.y + halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, mObsHeight, centerpos.y + sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, mObsHeight, centerpos.y + halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, mObsHeight, centerpos.y + sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, mObsHeight, centerpos.y + halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, 0, centerpos.y - sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, 0, centerpos.y - halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, 0, centerpos.y - sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, 0, centerpos.y - halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 0.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x + sideLength / 2, mObsHeight, centerpos.y - sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, mObsHeight, centerpos.y - halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(0.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
         acc = glm::vec3(0.f, 0.f, 0.f);
         verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-        pos = mFloorTransformation * glm::vec3(centerpos.x - sideLength / 2, mObsHeight, centerpos.y - sideLength / 2);
+        pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, mObsHeight, centerpos.y - halfSideLength);
         norm = -1.f * normalize(pos);
         tex = glm::vec2(1.f, 1.f);
         vel = glm::vec3(0.f, 0.f, 0.f);
@@ -279,6 +279,8 @@ void buildObstacles() {
 
 void buildSolution() {
     auto solution = mMyRRTStar->getSolution();
+    if (solution.empty()) return;
+
     for (int i = 0; i < solution.size() - 1; i++) {
         auto p = solution[i];
         auto q = solution[i + 1];
@@ -366,7 +368,7 @@ void buildAgent() {
         mAgent = nullptr;
     }
 
-    float sideLength = sqrt(2) * mAgentRadius;
+    float sideLength = 2 * mAgentRadius;
     mAgentPos = glm::vec3(mStartPos.x , 0.f, mStartPos.y);
     mAimAt = glm::vec3(mStartPos.x, 0.f, mStartPos.y);
 
@@ -439,7 +441,7 @@ void buildAgent() {
 void updateAgent(float dt) {
     if (!mMyRRTStar) return;
 
-    mAimAt = mMyRRTStar->nextAvailablePos(mAgentPos, mAgentRadius);
+    mAimAt = mMyRRTStar->nextAvailablePos(glm::vec2(mAgentPos.x, mAgentPos.z), mAgentRadius);
 
     if (glm::length(mAgentPos - mAimAt) > 1.0f) {
         auto dir = normalize(mAimAt - mAgentPos);
@@ -479,10 +481,10 @@ void buildRRTStar() {
         }*/
         mObstacles.push_back(make_pair(obsPos, radius));
         mMyRRTStar->addObstacle(obsPos, radius);
-        cout << "building obstacle at (" << obsPos.x << ", " << obsPos.y << ")" << endl;
+        cout << "building obstacle at (" << obsPos.x << ", " << obsPos.y << ")  with rad " << radius << endl;
     }
 
-	vector<glm::vec2> solution = mMyRRTStar->start();
+	vector<glm::vec2> solution = mMyRRTStar->start(mAgentRadius);
 }
 
 void display() {
