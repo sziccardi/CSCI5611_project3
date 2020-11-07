@@ -620,10 +620,15 @@ void updateAgent(float dt) {
 
     if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
         auto dir = normalize(mAimAt - mAgentPos);
-        auto diff = dir * mAgentSpeed * dt;
-        mAgentPos += diff;
+       for (int i = 0; i < mAgent->getNumVerts(); i++) {
+            auto vert = mAgent->getVertAt(i);
+            auto oldVel = vert.mVelocity;
+            vert.mVelocity = (dir + 15.f * oldVel) / 16.f;
+            vert.mPosition += mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
+            mAgent->setVertAt(i, vert);
+       }
 
-        mAgent->updateVerts(mFloorTransformation * diff);
+        mAgentPos += dir * mAgentSpeed * dt;
     }
 }
 
