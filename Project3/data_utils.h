@@ -13,55 +13,6 @@
 
 using namespace std;
 
-//class vec2 {
-//public:
-//	float mX = -1;
-//	float mY = -1;
-//
-//	vec2(float localX, float localY) {
-//		mX = localX;
-//		mY = localY;
-//	}
-//
-//	float dotProduct(vec2 otherPoint) {
-//		return (float)(otherPoint.mX * mX + otherPoint.mY * mY);
-//	}
-//
-//	float vecLength() {
-//		float toReturn = (float)sqrt(dotProduct(*this));
-//		return toReturn;
-//	}
-//
-//	vec2 operator+(const vec2& v) {
-//		return (vec2(v.mX + mX, v.mY + mY));
-//	}
-//
-//	vec2 operator*(const float& s) {
-//		return (vec2(mX * s, mY * s));
-//	}
-//
-//	vec2 vecNormalize() {
-//		vec2 toReturn = vec2(mX / vecLength(), mY / vecLength());
-//		return toReturn;
-//	}
-//
-//	vec2 operator-(const vec2& v) {
-//		return (vec2(-1.f * v.mX + mX, -1.f * v.mY + mY));
-//	}
-//
-//	bool operator<(const vec2& v) {
-//		return(vecLength() < sqrt(v.mX * v.mX + v.mY * v.mY));
-//	}
-//
-//	bool operator>(const vec2& v) {
-//		return(vecLength() > sqrt(v.mX * v.mX + v.mY * v.mY));
-//	}
-//
-//	bool operator==(const vec2& v) const {
-//		return (v.mX == mX && v.mY == mY);
-//	}
-//};
-
 namespace std {
 
 	template <>
@@ -88,28 +39,17 @@ class Node {
 public:
 	Node* mParent = nullptr;
 	glm::vec2 mPosition = glm::vec2(-1, -1);
+	float mCost = 0.f;
 	vector<Node*> mConnectedNodes;
 
-	Node(glm::vec2 position, Node* parent) {
+	Node(glm::vec2 position, Node* parent, float newCost) {
 		mPosition = position;
 		mParent = parent;
+		if (mParent) mCost = mParent->mCost + newCost;
+		else mCost = newCost;
 	}
 	~Node() {
-		if (mParent) {
-			auto p = mParent;
-			delete(p);
-			mParent = nullptr;
-		}
-		for (auto it = mConnectedNodes.begin(); it != mConnectedNodes.end(); ) {
-			if (true) {
-				delete* it;
-				it = mConnectedNodes.erase(it);
-			}
-			else {
-				++it;
-			}
-		}
-		mConnectedNodes.clear();
+		
 	}
 
 	void addConnection(Node* newNode) {
@@ -118,9 +58,6 @@ public:
 };
 
 class Tree {
-
-private:
-	unordered_map<glm::vec2, Node*> myList;
 
 public:
 	Tree() {
@@ -168,10 +105,10 @@ public:
 
 	Node* getNearestNode(glm::vec2 pointC) {
 		float delta = 10000000000000.;
-		Node* nearest = new Node(glm::vec2(-1, -1), nullptr);
+		Node* nearest = new Node(glm::vec2(-1, -1), nullptr, 0.f);
 		for (auto myPair : myList) {
 			auto actualPos = glm::vec2(myPair.first.x, myPair.first.y);
-			float tempDelta = (actualPos - pointC).length();
+			float tempDelta = glm::length(actualPos - pointC);
 			if (tempDelta < delta) {
 				delta = tempDelta;
 				nearest = myPair.second;
@@ -180,5 +117,74 @@ public:
 		return nearest;
 	}
 
+	vector<Node*> getNearNodes(glm::vec2 pointC, float searchRad) {
+		vector<Node*> list;
+		for (auto myPair : myList) {
+			auto actualPos = glm::vec2(myPair.first.x, myPair.first.y);
+			float tempDelta = glm::length(actualPos - pointC);
+			if (tempDelta < searchRad) {
+				list.push_back(myPair.second);
+			}
+		}
+		return list;
+	}
+
+	void clearDeadLeaves() {
+		auto it = myList.begin();
+		while (it != myList.end())
+		{
+			// remove odd numbers
+			if (!it->second->mParent) {
+				// erase() invalidates the iterator, use returned iterator
+				clearChildren(it->second);
+				it = myList.erase(it);
+			}
+			// Notice that iterator is incremented only on the else part (why?)
+			else {
+				++it;
+			}
+		}
+	}
+
 	int getTreeSize() { return myList.size(); }
+
+private:
+	unordered_map<glm::vec2, Node*> myList;
+
+	void clearChildren(Node* parent) {
+		auto it = parent->mConnectedNodes.begin();
+		while (it != parent->mConnectedNodes.end())
+		{
+			// remove odd numbers
+			if (!(*it)->mParent) {
+				// erase() invalidates the iterator, use returned iterator
+				clearChildren((*it));
+				auto toDel = (*it);
+				removeMeFromMap(*it);
+				it = parent->mConnectedNodes.erase(it);
+				delete(toDel);
+			}
+			// Notice that iterator is incremented only on the else part (why?)
+			else {
+				++it;
+			}
+		}
+
+	}
+
+	void removeMeFromMap(Node* node) {
+		auto it = myList.begin();
+		while (it != myList.end())
+		{
+			// remove odd numbers
+			if (it->second == node) {
+				// erase() invalidates the iterator, use returned iterator
+				it = myList.erase(it);
+			}
+			// Notice that iterator is incremented only on the else part (why?)
+			else {
+				++it;
+			}
+		}
+	}
 };

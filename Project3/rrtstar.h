@@ -24,6 +24,8 @@ public:
 	RRTStar();
 	RRTStar(int confWidth, int confHeight, glm::vec2 startPos, glm::vec2 goalPos, int numVerts);
 
+	~RRTStar();
+
 	glm::vec2 getInitPos();
 	void setInitPos(glm::vec2 initPos);
 
@@ -46,8 +48,6 @@ public:
 	void addObstacle(glm::vec2 pos, float radius);
 	vector<glm::vec2> start(float agentRad);
 
-	vector<glm::vec2> start(glm::vec2 means, float sxx, float syy, float sxy);
-
 	vector<glm::vec2> getSolution() { return mSolutionPath; }
 
 	void draw();
@@ -62,7 +62,6 @@ private:
 	Node* nearestNode(glm::vec2 rand);
 	glm::vec2 newConf(glm::vec2 nearby, glm::vec2 rand);
 
-	void letsBuildRRTStarOnDist(glm::vec2 means, float sxx, float syy, float sxy);
 	void letsBuildRRTStar();
 	void initEnvironment();
 
@@ -77,4 +76,6 @@ private:
 	float dq = 10;
 	int mWidth = 0;
 	int mHeight = 0;
+
+	float mNeighborRadius = 85.f;
 };

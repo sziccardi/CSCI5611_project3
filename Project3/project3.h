@@ -30,8 +30,8 @@ float deltaTime = 0.001f;
 
 
 /* Camera things*/
-glm::vec3 cameraPos = glm::vec3(0.0f, 35.0f, -5.0f);
-glm::vec3 cameraFront = glm::vec3(50.f, -1.0f, 50.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 155.0f, 0.0f);
+glm::vec3 cameraFront = glm::vec3(1.f, -1.0f, 1.f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 50.0f, 1.0f);
 glm::vec3 cameraRight = glm::vec3(3.0f, 0.0f, 0.0f);
 glm::vec2 mouseAngles = glm::vec2(0, 0);
@@ -40,7 +40,7 @@ float horizontal = 3.14f;
 float vertical = 0.0f;
 
 float cameraDepth = 10000.f;
-float cameraSpeed = 4.f;
+float cameraSpeed = 8.f;
 float cameraSpeedScale = 40.f;
 float moveMult = 5.0f;
 float mouseSpeed = 0.0f;
@@ -128,7 +128,7 @@ void buildFloor();
 void calculateFloorTransform();
 
 Mesh2D* mFloor = nullptr;
-const char* mFloorTexture = "purpleTexture.png";
+const char* mFloorTexture = "gradientTexture1.jpg";
 float mFloorHeight = 300.f;
 float mFloorWidth = 300.f;
 glm::vec3 mFloorNormal = glm::vec3(0, 1, 0);
@@ -139,13 +139,14 @@ void buildObstacles();
 
 vector<Mesh2D*> mObstacleMeshes;
 vector<pair<glm::vec2, float>> mObstacles;
-int mNumObstacles = 15;
+int mNumObstacles = 35;
 float mMaxRadius = 12.f;
 float mMinRadius = 1.f;
 float mObsHeight = 10.f;
 const char* mObstacleTexture = "obstacleTexture.jpg";
 
 /* Planning things */
+void buildStartEnd();
 void buildSolution();
 void buildAgent();
 void updateAgent(float dt);
@@ -157,15 +158,19 @@ int mNumVerts = 1000;
 glm::vec2 mStartPos = glm::vec2(0.f, mFloorHeight/2.f);
 glm::vec2 mGoalPos = glm::vec2(mFloorWidth, mFloorHeight/2.f);
 
+Mesh2D* mStartMesh = nullptr;
+Mesh2D* mEndMesh = nullptr;
+const char* mStartEndTexture = "startEndTexture.png";
+
 Mesh2D* mAgent = nullptr;
 float mAgentRadius = 5.f;
 float mAgentHeight = 20.f;
 glm::vec3 mAgentPos = glm::vec3(0.f, 0.f, 0.f);
 glm::vec3 mAimAt = glm::vec3(0.f, 0.f, 0.f);
 float mAgentSpeed = 15.f;
-const char* mAgentTexture = "grassTexture.jpg";
+const char* mAgentTexture = "gradientTexture.jpg";
 
-float mSolutionMeshThickness = 2.f;
+float mSolutionMeshThickness = 1.f;
 const char* mSolutionTexture = "tealTexture.jpg";
 vector<Mesh2D*> mSolutionMeshes;
 

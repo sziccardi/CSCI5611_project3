@@ -83,6 +83,12 @@ void keyOperations(void) {
         cameraPos += cameraFront * dCam * cameraSpeedScale;
     }
 
+    if (keyStates['r']) { // If the 'a' key has been pressed  
+        buildRRTStar();
+        buildEnvironment();
+        buildAgent();
+    }
+
     //cout << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
 }
 
@@ -115,6 +121,7 @@ void buildEnvironment() {
     buildFloor();
     buildObstacles();
     buildSolution();
+    buildStartEnd();
 }
 
 void buildFloor() {
@@ -125,7 +132,7 @@ void buildFloor() {
     }
 
     vector<Vertex> verts;
-    glm::vec3 pos = mFloorTransformation * glm::vec3(0, 0.f, mFloorHeight);
+    glm::vec3 pos = mFloorTransformation * glm::vec3(0.f, 0.f, mFloorHeight);
     glm::vec3 norm = glm::vec3(0.f, 1.f, 0.f);
     glm::vec2 tex = glm::vec2(0.f, 1.f);
     glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
@@ -139,14 +146,14 @@ void buildFloor() {
     acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(mFloorWidth, 0.f, 0);
+    pos = mFloorTransformation * glm::vec3(mFloorWidth, 0.f, 0.f);
     norm = glm::vec3(0.f, 1.f, 0.f);
     tex = glm::vec2(1.f, 0.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
     acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(0, 0.f, 0);
+    pos = mFloorTransformation * glm::vec3(0.f, 0.f, 0.f);
     norm = glm::vec3(0.f, 1.f, 0.f);
     tex = glm::vec2(0.f, 0.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
@@ -154,7 +161,7 @@ void buildFloor() {
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
     vector<unsigned int> indices;
-    indices = { 0, 1, 3, 3, 2, 1 };
+    indices = { 0, 3, 1, 3, 2, 1 };
 
     mFloor = new Mesh2D(verts, indices, mFloorTexture);
 
@@ -206,9 +213,24 @@ void calculateFloorTransform() {
 }
 
 void buildObstacles() {
+    auto it = mObstacleMeshes.begin();
+    while (it != mObstacleMeshes.end())
+    {
+        if (true) {
+            // erase() invalidates the iterator, use returned iterator
+            auto i = *it;
+            it = mObstacleMeshes.erase(it);
+            delete(i);
+        }
+        // Notice that iterator is incremented only on the else part (why?)
+        else {
+            ++it;
+        }
+    }
+    mObstacleMeshes.clear();
 
     for (int i = 0; i < mObstacles.size(); i++) {
-        float halfSideLength = mObstacles[i].second;
+        float halfSideLength = sqrt(2.f) * mObstacles[i].second / 2.f;
         glm::vec2 centerpos = mObstacles[i].first;
 
         vector<Vertex> verts;
@@ -277,7 +299,160 @@ void buildObstacles() {
     }
 }
 
+void buildStartEnd() {
+    if (mStartMesh) {
+        auto s = mStartMesh;
+        delete(s);
+        mStartMesh = nullptr;
+    }
+
+    if (mEndMesh) {
+        auto e = mEndMesh;
+        delete(e);
+        mEndMesh = nullptr;
+    }
+
+    vector<Vertex> verts;
+    glm::vec3 pos = mFloorTransformation * glm::vec3(mStartPos.x - 2.f, 0, mStartPos.y);
+    glm::vec3 norm = -1.f * normalize(pos);
+    glm::vec2 tex = glm::vec2(0.f, 1.f);
+    glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
+    glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x, 0, mStartPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x, 2.f, mStartPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x - 2.f, 2.f, mStartPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x - 2.f, 0, mStartPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x, 0, mStartPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x, 2.f, mStartPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mStartPos.x - 2.f, 2.f, mStartPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+
+    vector<unsigned int> indices;
+    //              back                front
+    indices = { 1, 0, 2, 2, 3, 0,  5, 4, 6, 6, 7, 4,  0, 1, 4, 4, 5, 1,  1, 2, 5, 5, 6, 2,  2, 3, 6, 6, 7, 3,  3, 0, 7, 7, 4, 0 };
+
+    mStartMesh = new Mesh2D(verts, indices, mStartEndTexture);
+
+    verts.clear();
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x - 2.f, 0, mGoalPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x, 0, mGoalPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x, 2.f, mGoalPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x - 2.f, 2.f, mGoalPos.y);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x - 2.f, 0, mGoalPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x, 0, mGoalPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x, 2.f, mGoalPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mGoalPos.x - 2.f, 2.f, mGoalPos.y - 2.f);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    mEndMesh = new Mesh2D(verts, indices, mStartEndTexture);
+}
+
 void buildSolution() {
+    auto it = mSolutionMeshes.begin();
+    while (it != mSolutionMeshes.end())
+    {
+        if (true) {
+            // erase() invalidates the iterator, use returned iterator
+            auto i = *it;
+            it = mSolutionMeshes.erase(it);
+            delete(i);
+        }
+        // Notice that iterator is incremented only on the else part (why?)
+        else {
+            ++it;
+        }
+    }
+    mSolutionMeshes.clear();
+
     auto solution = mMyRRTStar->getSolution();
     if (solution.empty()) return;
 
@@ -368,9 +543,9 @@ void buildAgent() {
         mAgent = nullptr;
     }
 
-    float sideLength = 2 * mAgentRadius;
+    float sideLength = sqrt(2.f) * mAgentRadius / 2.f;
     mAgentPos = glm::vec3(mStartPos.x , 0.f, mStartPos.y);
-    mAimAt = glm::vec3(mStartPos.x, 0.f, mStartPos.y);
+    mAimAt = glm::vec3(0.f);
 
     vector<Vertex> verts;
     glm::vec3 pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z + sideLength / 2);
@@ -443,7 +618,7 @@ void updateAgent(float dt) {
 
     mAimAt = mMyRRTStar->nextAvailablePos(glm::vec2(mAgentPos.x, mAgentPos.z), mAgentRadius);
 
-    if (glm::length(mAgentPos - mAimAt) > 1.0f) {
+    if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
         auto dir = normalize(mAimAt - mAgentPos);
         auto diff = dir * mAgentSpeed * dt;
         mAgentPos += diff;
@@ -521,6 +696,8 @@ void display() {
         it->draw();
     }
     if (mAgent) mAgent->draw();
+    if (mStartMesh) mStartMesh->draw();
+    if (mEndMesh) mEndMesh->draw();
 
     glutSwapBuffers();
 

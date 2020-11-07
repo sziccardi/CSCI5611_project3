@@ -14,6 +14,10 @@ RRTStar::RRTStar(int confWidth, int confHeight, glm::vec2 startPos, glm::vec2 go
 	return;
 }
 
+RRTStar::~RRTStar() {
+	if (myTree) delete(myTree);
+}
+
 glm::vec2 RRTStar::getInitPos() { return mInitPos; }
 void RRTStar::setInitPos(glm::vec2 initPos) { mInitPos = initPos; }
 
@@ -31,13 +35,12 @@ int RRTStar::getNumNodes() { return myTree->getTreeSize(); }
 int RRTStar::getIsSuccessful() { return (mSolutionPath.size() > 0); }
 
 glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
-	glm::vec3 nextPos = glm::vec3(0.f, 0.f, 0.f);
-	bool foundAimPos = false;
+	glm::vec3 nextPos = glm::vec3(mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].x, 0.f, mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].y);
 	//is goal visible?
 	glm::vec2 goalray = mGoalPos - currentPos;
 	bool goalcollides = false;
 	for (auto obs : mObstacles) {
-		goalcollides = collides(obs.first, obs.second + agentRad, currentPos, glm::normalize(goalray), glm::length(goalray));
+		goalcollides = collides(obs.first, (obs.second + agentRad), currentPos, glm::normalize(goalray), glm::length(goalray));
 		if (goalcollides) {
 			break;
 		}
@@ -46,7 +49,7 @@ glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
 		return glm::vec3(mGoalPos.x, 0.f, mGoalPos.y);
 	}
 
-	//for (std::vector<glm::vec2>::reverse_iterator it = mSolutionPath.rbegin() + 1; it != mSolutionPath.rend(); ++it) {
+	//if cant head to the goal right away, lets go to something closer
 	for (auto it : mSolutionPath) {
 		if (mCurrentAimIter < mSolutionPath.size() - 1) {
 			//check next
@@ -54,7 +57,7 @@ glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
 			glm::vec2 ray = mSolutionPath[mSolutionPath.size() - 1 - tempIter] - currentPos;
 			bool collided = true;
 			for (auto obs : mObstacles) {
-				collided = collides(obs.first, obs.second + agentRad, currentPos, normalize(ray), glm::length(ray));
+				collided = collides(obs.first, (obs.second + agentRad), currentPos, normalize(ray), glm::length(ray));
 				if (collided) break;
 			}
 			if (!collided) {
@@ -106,11 +109,6 @@ vector<glm::vec2> RRTStar::start(float agentRad) {
 	return mSolutionPath;
 }
 
-vector<glm::vec2> RRTStar::start(glm::vec2 means, float sxx, float syy, float sxy) {
-	letsBuildRRTStarOnDist(means, sxx, syy, sxy);
-	return mSolutionPath;
-}
-
 void RRTStar::draw() {
 
 	
@@ -123,51 +121,6 @@ glm::vec2 RRTStar::randConfEven() {
 	glm::vec2 myPos = glm::vec2(randX, randY);
 	return myPos;
 }
-
-glm::vec2 RRTStar::randConfDist(glm::vec2 means, float sxx, float syy, float sxy) {
-	/*normal_distribution<> dx{ means.mX, sxx };
-	normal_distribution<> dy{ means.mY, syy };
-	random_device rd{};
-	mt19937 gen{ rd() };
-
-	float a = dx(gen);
-	float b = dy(gen);
-	Eigen::VectorXd v(2);
-	v(0) = a;
-	v(1) = b;
-	Eigen::MatrixXd A(2, 2);
-	A(0, 0) = sxx;
-	A(0, 1) = sxy;
-	A(1, 0) = sxy;
-	A(1, 1) = syy;
-	Eigen::MatrixXd L(A.llt().matrixL());
-	Eigen::MatrixXd S = A.sqrt();
-	Eigen::VectorXd solution = L * v;
-	Eigen::VectorXd solution1 = S * v;
-	vec2 sample = vec2(solution(0), solution(1));
-	vec2 sample1 = vec2(solution1(0), solution1(1));
-	sample = sample + means;
-
-	return sample;*/
-	normal_distribution<> dx{ means.x, sxx };
-	normal_distribution<> dy{ means.y, syy };
-	random_device rd{};
-	mt19937 gen{ rd() };
-
-	float a = dx(gen);
-	float b = dy(gen);
-	glm::vec2 sample = glm::vec2(a * sxx + b * sxy, a * sxy + b * syy);
-	sample = sample + means;
-
-	return sample;
-}
-
-//vec2 nearestPixel(vec2 rand) {
-//  //loop through all points in the graph and find the one closest to the rand pos
-//  vec2 myPos = myTree.getNearestPoint(rand);
-
-//  return myPos;
-//}
 
 Node* RRTStar::nearestNode(glm::vec2 rand) {
 	//loop through all points in the graph and find the one closest to the rand pos
@@ -229,7 +182,7 @@ glm::vec2 RRTStar::newConf(glm::vec2 nearby, glm::vec2 rand) {
 }
 
 void RRTStar::letsBuildRRTStar() {
-	Node* newNode = new Node(mInitPos, nullptr);
+	Node* newNode = new Node(mInitPos, nullptr, 0.f);
 	int count = 0;
 	while (glm::length(mGoalPos - newNode->mPosition) > 10.f) {
 		if (count > mCountMax) break;
@@ -243,14 +196,68 @@ void RRTStar::letsBuildRRTStar() {
 			randPos = randConfEven();
 		}
 
+		//cout << "my rand pos is " << randPos.x << ", " << randPos.y << endl;
+		vector<Node*> nearNodes = myTree->getNearNodes(randPos, mNeighborRadius);
+		//cout << " I found " << nearNodes.size() << " neighbors" << endl;
+		if (nearNodes.empty()) nearNodes.push_back(nearestNode(randPos));
+		float minCost = 999999999.f;
+		Node* cheapestNeighbor = nullptr;
+		for (Node* testNode : nearNodes) {
+			if (testNode->mCost < minCost) {
+				minCost = testNode->mCost;
+				cheapestNeighbor = testNode;
+			}
+		}
+
+		if (cheapestNeighbor) {
+			glm::vec2 tempNewPos = newConf(cheapestNeighbor->mPosition, randPos);
+			if (tempNewPos.x > 0) {
+				newNode = new Node(tempNewPos, cheapestNeighbor, glm::length(tempNewPos - cheapestNeighbor->mPosition));
+				myTree->addVertex(newNode);
+				myTree->addEdge(cheapestNeighbor, newNode);
+			}
+		}
+		//TODO: figure out why this is intersecting
+		//gotta rewire!
+		//check through neighbors, if changing my parent to this new node decreases my cost, do it
+		//for (Node* neighborNode : nearNodes) {
+		//	if (neighborNode->mParent) {
+		//		float parentCost = neighborNode->mParent->mCost;
+		//		float newParentCost = newNode->mCost;
+		//		if (parentCost > newParentCost) {
+		//			auto oldParent = neighborNode->mParent;
+		//			//remove me from the connected list
+		//			auto it = oldParent->mConnectedNodes.begin();
+		//			while (it != oldParent->mConnectedNodes.end()) {
+		//				if ((*it)->mPosition.x == neighborNode->mPosition.x && (*it)->mPosition.y == neighborNode->mPosition.y) {
+		//					it = oldParent->mConnectedNodes.erase(it);
+		//				}
+		//				else {
+		//					++it;
+		//				}
+		//			}
+
+		//			//change the parent
+		//			neighborNode->mParent = newNode;
+		//			newNode->mConnectedNodes.push_back(neighborNode);
+		//		}
+		//	}
+		//}
+
+		//clear the tree of dead nodes
+		//myTree->clearDeadLeaves();
+
+
+		/*
 		Node* nearNode = nearestNode(randPos);
 		glm::vec2 tempNewPos = newConf(nearNode->mPosition, randPos);
 
 		if (tempNewPos.x > 0) {
-			newNode = new Node(tempNewPos, nearNode);
+			newNode = new Node(tempNewPos, nearNode, glm::length(tempNewPos - nearNode->mPosition));
 			myTree->addVertex(newNode);
 			myTree->addEdge(nearNode, newNode);
 		}
+		*/
 	}
 	cout << "my tree has " << myTree->getTreeSize() << " nodes" << endl;
 	mSolutionPath.clear();
@@ -271,64 +278,8 @@ void RRTStar::letsBuildRRTStar() {
 	}
 }
 
-void RRTStar::letsBuildRRTStarOnDist(glm::vec2 means, float sxx, float syy, float sxy) {
-	Node* newNode = new Node(mInitPos, nullptr);
-	bool useDist = (means.x > 0 && means.y > 0);
-	Eigen::Vector2f mean(2);
-	mean(0) = means.x;
-	mean(1) = means.y;
-	Eigen::Matrix2f covar(2, 2);
-	covar(0, 0) = sxx;
-	covar(0, 1) = sxy;
-	covar(1, 0) = sxy;
-	covar(1, 1) = syy;
-	Eigen::EigenMultivariateNormal<float> normX_solver1(mean, covar);
-	int count = 0;
-	while (glm::length(mGoalPos - newNode->mPosition) > 10.f) {
-
-		if (count > mCountMax) break;
-		count++;
-
-		glm::vec2 randPos = glm::vec2(-1, -1);
-		if (means.x > 0 && means.y > 0) {
-			if (rand() % 100 < 10) {
-				randPos = mGoalPos;
-			}
-			else {
-				auto sample = normX_solver1.samples(1);
-				randPos = glm::vec2(sample(0, 0), sample(1, 0));
-			}
-			//cout << "chose " << randPos.mX << ", " << randPos.mY << endl;
-		}
-
-		Node* nearNode = nearestNode(randPos);
-		glm::vec2 tempNewPos = newConf(nearNode->mPosition, randPos);
-
-		if (tempNewPos.x > 0) {
-			newNode = new Node(tempNewPos, nearNode);
-			myTree->addVertex(newNode);
-			myTree->addEdge(nearNode, newNode);
-		}
-	}
-	mSolutionPath.clear();
-	if (count > mCountMax) {
-		cout << "Couldn't find a solution... So saaaad" << endl;
-	}
-	else {
-		cout << "Found a solution! Yay go you!" << endl;
-		mSolutionPath.push_back(newNode->mPosition);
-		while (abs(newNode->mPosition.x - mInitPos.x) > 1.0 || abs(newNode->mPosition.y - mInitPos.y) > 1.0) {
-			if (newNode->mParent == nullptr) {
-				break;
-			}
-			newNode = newNode->mParent;
-			mSolutionPath.push_back(newNode->mPosition);
-		}
-	}
-}
-
 void RRTStar::initEnvironment() {
-	Node* initNode = new Node(mInitPos, nullptr);
+	Node* initNode = new Node(mInitPos, nullptr, 0.f);
 	if (myTree) {
 		auto t = myTree;
 		delete(t);
