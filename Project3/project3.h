@@ -163,9 +163,10 @@ Mesh2D* mEndMesh = nullptr;
 const char* mStartEndTexture = "startEndTexture.png";
 
 Mesh2D* mAgent = nullptr;
-float mAgentRadius = 5.f;
-float mAgentHeight = 20.f;
+float mAgentRadius = 8.f;
+float mAgentHeight = 1.f;
 glm::vec3 mAgentPos = glm::vec3(0.f, 0.f, 0.f);
+float mAgentDir = 0.f;
 glm::vec3 mAimAt = glm::vec3(0.f, 0.f, 0.f);
 float mAgentSpeed = 15.f;
 const char* mAgentTexture = "gradientTexture.jpg";

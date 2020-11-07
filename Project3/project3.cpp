@@ -548,21 +548,14 @@ void buildAgent() {
     mAimAt = glm::vec3(0.f);
 
     vector<Vertex> verts;
-    glm::vec3 pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z + sideLength / 2);
+    glm::vec3 pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z - sideLength / 2);
     glm::vec3 norm = -1.f * normalize(pos);
-    glm::vec2 tex = glm::vec2(0.f, 1.f);
+    glm::vec2 tex = glm::vec2(0.f, 0.f);
     glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
     glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
-    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, 0, mAgentPos.z + sideLength / 2);
-    norm = -1.f * normalize(pos);
-    tex = glm::vec2(1.f, 1.f);
-    vel = glm::vec3(0.f, 0.f, 0.f);
-    acc = glm::vec3(0.f, 0.f, 0.f);
-    verts.push_back(Vertex(pos, norm, tex, vel, acc));
-
-    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, mObsHeight, mAgentPos.z + sideLength / 2);
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z + sideLength / 2);
     norm = -1.f * normalize(pos);
     tex = glm::vec2(1.f, 0.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
@@ -571,33 +564,19 @@ void buildAgent() {
 
     pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, mObsHeight, mAgentPos.z + sideLength / 2);
     norm = -1.f * normalize(pos);
-    tex = glm::vec2(0.f, 0.f);
-    vel = glm::vec3(0.f, 0.f, 0.f);
-    acc = glm::vec3(0.f, 0.f, 0.f);
-    verts.push_back(Vertex(pos, norm, tex, vel, acc));
-
-    pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, 0, mAgentPos.z - sideLength / 2);
-    norm = -1.f * normalize(pos);
-    tex = glm::vec2(1.f, 0.f);
-    vel = glm::vec3(0.f, 0.f, 0.f);
-    acc = glm::vec3(0.f, 0.f, 0.f);
-    verts.push_back(Vertex(pos, norm, tex, vel, acc));
-
-    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, 0, mAgentPos.z - sideLength / 2);
-    norm = -1.f * normalize(pos);
-    tex = glm::vec2(0.f, 0.f);
-    vel = glm::vec3(0.f, 0.f, 0.f);
-    acc = glm::vec3(0.f, 0.f, 0.f);
-    verts.push_back(Vertex(pos, norm, tex, vel, acc));
-
-    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, mObsHeight, mAgentPos.z - sideLength / 2);
-    norm = -1.f * normalize(pos);
     tex = glm::vec2(0.f, 1.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
     acc = glm::vec3(0.f, 0.f, 0.f);
     verts.push_back(Vertex(pos, norm, tex, vel, acc));
 
     pos = mFloorTransformation * glm::vec3(mAgentPos.x - sideLength / 2, mObsHeight, mAgentPos.z - sideLength / 2);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(mAgentPos.x + sideLength / 2, mObsHeight / 2.f, mAgentPos.z - sideLength / 2);
     norm = -1.f * normalize(pos);
     tex = glm::vec2(1.f, 1.f);
     vel = glm::vec3(0.f, 0.f, 0.f);
@@ -607,7 +586,7 @@ void buildAgent() {
 
     vector<unsigned int> indices;
     //              back                front
-    indices = { 1, 0, 2, 2, 3, 0,  5, 4, 6, 6, 7, 4,  0, 1, 4, 4, 5, 1,  1, 2, 5, 5, 6, 2,  2, 3, 6, 6, 7, 3,  3, 0, 7, 7, 4, 0 };
+    indices = { 0, 1, 2, 0, 3, 2,   0, 1, 4,   1, 2, 4,   2, 3, 4,   3, 0, 4 };
 
     mAgent = new Mesh2D(verts, indices, mAgentTexture);
 }
@@ -620,11 +599,34 @@ void updateAgent(float dt) {
 
     if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
         auto dir = normalize(mAimAt - mAgentPos);
+        glm::vec3 oldVel = glm::vec3(0.f);
        for (int i = 0; i < mAgent->getNumVerts(); i++) {
             auto vert = mAgent->getVertAt(i);
-            auto oldVel = vert.mVelocity;
+            oldVel = vert.mVelocity;
             vert.mVelocity = (dir + 15.f * oldVel) / 16.f;
-            vert.mPosition += mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
+            if (glm::length(vert.mVelocity) > 0) vert.mVelocity = glm::normalize(vert.mVelocity);
+
+            float theta = 0.f;
+            if (glm::length(oldVel) > 0) {
+                auto myDot = glm::dot(mFloorTransformation * vert.mVelocity, mFloorTransformation * oldVel);
+                if (abs(myDot - 1) < 0.001) {
+                    theta = 0.f;
+                } else {
+                    theta = acos(myDot);
+                }
+            }
+            auto rotation = glm::mat3(0.f);
+            rotation[0][0] = 1.f;// cos(theta);
+            //rotation[0][2] = sin(theta);
+            rotation[1][1] = 1.f;
+            //rotation[2][0] = -sin(theta);
+            rotation[2][2] = 1.f;// cos(theta);
+
+            auto oldPos = vert.mPosition;
+            oldPos -= mFloorTransformation * mAgentPos;
+            oldPos = rotation * oldPos;
+            oldPos += mFloorTransformation * mAgentPos;
+            vert.mPosition = oldPos + mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
             mAgent->setVertAt(i, vert);
        }
 
