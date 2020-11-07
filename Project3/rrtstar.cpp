@@ -35,6 +35,7 @@ int RRTStar::getNumNodes() { return myTree->getTreeSize(); }
 int RRTStar::getIsSuccessful() { return (mSolutionPath.size() > 0); }
 
 glm::vec3 RRTStar::nextAvailablePos(glm::vec2 currentPos, float agentRad) {
+	if (mSolutionPath.empty()) return glm::vec3(-1.f);
 	glm::vec3 nextPos = glm::vec3(mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].x, 0.f, mSolutionPath[mSolutionPath.size() - 1 - mCurrentAimIter].y);
 	//is goal visible?
 	glm::vec2 goalray = mGoalPos - currentPos;

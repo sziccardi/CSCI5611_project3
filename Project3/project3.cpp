@@ -83,10 +83,9 @@ void keyOperations(void) {
         cameraPos += cameraFront * dCam * cameraSpeedScale;
     }
 
-    if (keyStates['r']) { // If the 'a' key has been pressed  
-        buildRRTStar();
+    if (keyStates['r']) { // If the 'a' key has been pressed 
         buildEnvironment();
-        buildAgent();
+        buildAgents();
     }
 
     //cout << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
@@ -120,8 +119,6 @@ void buildEnvironment() {
     calculateFloorTransform();
     buildFloor();
     buildObstacles();
-    buildSolution();
-    buildStartEnd();
 }
 
 void buildFloor() {
@@ -213,6 +210,16 @@ void calculateFloorTransform() {
 }
 
 void buildObstacles() {
+    mObstacles.clear();
+    for (int i = 0; i < mNumObstacles; i++) {
+        auto randX = rand() % (int)mFloorWidth;
+        auto randY = rand() % (int)mFloorHeight;
+        auto randRad = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
+
+        mObstacles.push_back(make_pair(glm::vec2(randX, randY), randRad));
+    }
+
+
     auto it = mObstacleMeshes.begin();
     while (it != mObstacleMeshes.end())
     {
@@ -299,7 +306,87 @@ void buildObstacles() {
     }
 }
 
-void buildStartEnd() {
+void buildAgents() {
+    if (!mAgents.empty()) {
+        auto it = mAgents.begin();
+        while (it != mAgents.end())
+        {
+            if (true) {
+                // erase() invalidates the iterator, use returned iterator
+                auto i = *it;
+                it = mAgents.erase(it);
+                delete(i);
+            }
+            // Notice that iterator is incremented only on the else part (why?)
+            else {
+                ++it;
+            }
+        }
+    }
+    for (int i = 0; i < mNumAgents; i++) {
+        //auto startEdge = rand() % 4;
+        int startEdge = 0;
+        int endEdge = 1;
+        /*int endEdge = startEdge;
+        while (startEdge == endEdge) {
+            endEdge = rand() % 4;
+        }*/
+        auto start = glm::vec2(0.f);
+        auto end = glm::vec2(0.f);
+
+        switch (startEdge) {
+        case 0:
+            start.x = 0.f;
+            start.y = mFloorHeight / 4.f + rand() % (int)(mFloorHeight / 2.f);
+            break;
+        case 1:
+            start.x = mFloorWidth;
+            start.y = mFloorHeight / 4.f + rand() % (int)(mFloorHeight / 2.f);
+            break;
+        case 2:
+            start.y = 0.f;
+            start.x = mFloorWidth / 4.f + rand() % (int)(mFloorWidth / 2.f);
+            break;
+        case 3:
+            start.y = mFloorHeight;
+            start.x = mFloorWidth / 4.f + rand() % (int)(mFloorWidth / 2.f);
+            break;
+        default:
+            break;
+        }
+
+        switch (endEdge) {
+        case 0:
+            end.x = 0.f;
+            end.y = mFloorHeight / 4.f + rand() % (int)(mFloorHeight / 2.f);
+            break;
+        case 1:
+            end.x = mFloorWidth;
+            end.y = mFloorHeight / 4.f + rand() % (int)(mFloorHeight / 2.f);
+            break;
+        case 2:
+            end.y = 0.f;
+            end.x = mFloorWidth / 4.f + rand() % (int)(mFloorWidth / 2.f);
+            break;
+        case 3:
+            end.y = mFloorHeight;
+            end.x = mFloorWidth / 4.f + rand() % (int)(mFloorWidth / 2.f);
+            break;
+        default:
+            break;
+        }
+
+        auto agent = new Agent(start, end);
+        agent->buildRRTStar(mObstacles);
+        agent->buildAgent();
+        agent->buildSolution();
+        agent->buildStartEnd();
+
+        mAgents.push_back(agent);
+    }
+}
+
+void Agent::buildStartEnd() {
     if (mStartMesh) {
         auto s = mStartMesh;
         delete(s);
@@ -312,6 +399,7 @@ void buildStartEnd() {
         mEndMesh = nullptr;
     }
 
+    
     vector<Vertex> verts;
     glm::vec3 pos = mFloorTransformation * glm::vec3(mStartPos.x - 2.f, 0, mStartPos.y);
     glm::vec3 norm = -1.f * normalize(pos);
@@ -436,7 +524,7 @@ void buildStartEnd() {
     mEndMesh = new Mesh2D(verts, indices, mStartEndTexture);
 }
 
-void buildSolution() {
+void Agent::buildSolution() {
     auto it = mSolutionMeshes.begin();
     while (it != mSolutionMeshes.end())
     {
@@ -536,11 +624,11 @@ void buildSolution() {
 
 }
 
-void buildAgent() {
-    if (mAgent) {
-        auto a = mAgent;
+void Agent::buildAgent() {
+    if (mAgentMesh) {
+        auto a = mAgentMesh;
         delete(a);
-        mAgent = nullptr;
+        mAgentMesh = nullptr;
     }
 
     float sideLength = sqrt(2.f) * mAgentRadius / 2.f;
@@ -588,85 +676,81 @@ void buildAgent() {
     //              back                front
     indices = { 0, 1, 2, 0, 3, 2,   0, 1, 4,   1, 2, 4,   2, 3, 4,   3, 0, 4 };
 
-    mAgent = new Mesh2D(verts, indices, mAgentTexture);
+    mAgentMesh = new Mesh2D(verts, indices, mAgentTexture);
 }
 
 
-void updateAgent(float dt) {
-    if (!mMyRRTStar) return;
+void Agent::updateAgent(float dt) {
+    if (mMyRRTStar && mAgentMesh) {
 
-    mAimAt = mMyRRTStar->nextAvailablePos(glm::vec2(mAgentPos.x, mAgentPos.z), mAgentRadius);
+        mAimAt = mMyRRTStar->nextAvailablePos(glm::vec2(mAgentPos.x, mAgentPos.z), mAgentRadius);
 
-    if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
-        auto dir = normalize(mAimAt - mAgentPos);
-        glm::vec3 oldVel = glm::vec3(0.f);
-       for (int i = 0; i < mAgent->getNumVerts(); i++) {
-            auto vert = mAgent->getVertAt(i);
-            oldVel = vert.mVelocity;
-            vert.mVelocity = (dir + 15.f * oldVel) / 16.f;
-            if (glm::length(vert.mVelocity) > 0) vert.mVelocity = glm::normalize(vert.mVelocity);
+        if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
+            auto dir = normalize(mAimAt - mAgentPos);
+            glm::vec3 oldVel = glm::vec3(0.f);
+            for (int i = 0; i < mAgentMesh->getNumVerts(); i++) {
+                auto vert = mAgentMesh->getVertAt(i);
+                oldVel = vert.mVelocity;
+                vert.mVelocity = (dir + 15.f * oldVel) / 16.f;
+                if (glm::length(vert.mVelocity) > 0) vert.mVelocity = glm::normalize(vert.mVelocity);
 
-            float theta = 0.f;
-            if (glm::length(oldVel) > 0) {
-                auto myDot = glm::dot(mFloorTransformation * vert.mVelocity, mFloorTransformation * oldVel);
-                if (abs(myDot - 1) < 0.001) {
-                    theta = 0.f;
-                } else {
-                    theta = acos(myDot);
+                float theta = 0.f;
+                if (glm::length(oldVel) > 0) {
+                    auto myDot = glm::dot(mFloorTransformation * vert.mVelocity, mFloorTransformation * oldVel);
+                    if (abs(myDot - 1) < 0.001) {
+                        theta = 0.f;
+                    }
+                    else {
+                        theta = acos(myDot);
+                    }
                 }
+                auto rotation = glm::mat3(0.f);
+                rotation[0][0] = 1.f;// cos(theta);
+                //rotation[0][2] = sin(theta);
+                rotation[1][1] = 1.f;
+                //rotation[2][0] = -sin(theta);
+                rotation[2][2] = 1.f;// cos(theta);
+
+                auto oldPos = vert.mPosition;
+                oldPos -= mFloorTransformation * mAgentPos;
+                oldPos = rotation * oldPos;
+                oldPos += mFloorTransformation * mAgentPos;
+                vert.mPosition = oldPos + mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
+                mAgentMesh->setVertAt(i, vert);
             }
-            auto rotation = glm::mat3(0.f);
-            rotation[0][0] = 1.f;// cos(theta);
-            //rotation[0][2] = sin(theta);
-            rotation[1][1] = 1.f;
-            //rotation[2][0] = -sin(theta);
-            rotation[2][2] = 1.f;// cos(theta);
 
-            auto oldPos = vert.mPosition;
-            oldPos -= mFloorTransformation * mAgentPos;
-            oldPos = rotation * oldPos;
-            oldPos += mFloorTransformation * mAgentPos;
-            vert.mPosition = oldPos + mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
-            mAgent->setVertAt(i, vert);
-       }
-
-        mAgentPos += dir * mAgentSpeed * dt;
+            mAgentPos += dir * mAgentSpeed * dt;
+        }
     }
+
 }
 
-void buildRRTStar() {
+void Agent::buildRRTStar(vector<pair<glm::vec2, float>> obstacles) {
 	if (mMyRRTStar) {
 		auto r = mMyRRTStar;
 		delete(r);
 		mMyRRTStar = nullptr;
 	}
 
-	mMyRRTStar = new RRTStar((int)mFloorWidth, (int)mFloorHeight, mStartPos, mGoalPos, mNumVerts);
+    mMyRRTStar = new RRTStar((int)mFloorWidth, (int)mFloorHeight, mStartPos, mGoalPos, mNumVerts);
 
-    mObstacles.clear();
-    for (int i = 0; i < mNumObstacles; i++) {
-        glm::vec2 obsPos = glm::vec2(rand() % (int)(mFloorWidth - 2 * mMaxRadius), rand() % (int)(mFloorHeight - 2 * mMaxRadius)) + glm::vec2(mMaxRadius, mMaxRadius);
-        float radius = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
-       /* glm::vec2 obsPos = glm::vec2(-1.f, -1.f);
-        float radius = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
-        bool available = false;
-        while (!available) {
-            obsPos = glm::vec2(rand() % (int)mFloorWidth, rand() % (int)mFloorHeight);
-            bool notAvailable = false;
-            for (auto obs : mObstacles) {
-                if ((obs.first - obsPos).length() < obs.second + radius) {
-                    notAvailable = true;
-                    break;
-                }
-            }
-            available = !notAvailable;
-        }*/
-        mObstacles.push_back(make_pair(obsPos, radius));
-        mMyRRTStar->addObstacle(obsPos, radius);
-        cout << "building obstacle at (" << obsPos.x << ", " << obsPos.y << ")  with rad " << radius << endl;
+    for (int i = 0; i < mObstacles.size(); i++) {
+        mMyRRTStar->addObstacle(obstacles[i].first, obstacles[i].second);
     }
 
-	vector<glm::vec2> solution = mMyRRTStar->start(mAgentRadius);
+    mMyRRTStar->start(mAgentRadius);
+
+
+}
+
+void Agent::drawAgent() {
+    for (auto it : mSolutionMeshes) {
+        it->draw();
+    }
+    if (mAgentMesh) mAgentMesh->draw();
+    if (mStartMesh) mStartMesh->draw();
+    if (mEndMesh) mEndMesh->draw();
+
 }
 
 void display() {
@@ -699,12 +783,10 @@ void display() {
     for (auto it : mObstacleMeshes) {
         it->draw();
     }    
-    for (auto it : mSolutionMeshes) {
-        it->draw();
+    
+    for (auto agent : mAgents) {
+        agent->drawAgent();
     }
-    if (mAgent) mAgent->draw();
-    if (mStartMesh) mStartMesh->draw();
-    if (mEndMesh) mEndMesh->draw();
 
     glutSwapBuffers();
 
@@ -718,8 +800,10 @@ void display() {
         framesSinceLast = 0;
         cout << "FPS: " << fps;
         int totalVerts = 0;
-        totalVerts += mSolutionMeshes.size() * 8;
+        //TODO: count agent meshes
         totalVerts += mObstacleMeshes.size() * 8;
+        //totalVerts += mAgent1->getNumVerts();
+        //totalVerts += mAgent2->getNumVerts();
         totalVerts += mFloor->getNumVerts();
         cout << "\t Vertices: ";
         cout << totalVerts << endl;
@@ -800,9 +884,10 @@ void animLoop(int val) {
     framesSinceLast += 1;
 
     //for (int i = 0; i < 16; i++) {
+    for (auto agent : mAgents) {
         //update
-        updateAgent(0.016f);
-    //}
+        agent->updateAgent(0.016f);
+    }
 
     glutPostRedisplay();
     glutTimerFunc(16, animLoop, 1);
@@ -818,9 +903,9 @@ int main(int argc, char* argv[]) {
     glewInit();
     initShader();
 
-    buildRRTStar();
+    //buildrrtstar
     buildEnvironment();
-    buildAgent();
+    buildAgents();
 
     /*interactions stuff*/
     glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses  

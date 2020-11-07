@@ -146,32 +146,53 @@ float mObsHeight = 10.f;
 const char* mObstacleTexture = "obstacleTexture.jpg";
 
 /* Planning things */
-void buildStartEnd();
-void buildSolution();
-void buildAgent();
-void updateAgent(float dt);
-void buildRRTStar();
+struct Agent {
+    Agent(glm::vec2 start, glm::vec2 end) {
+        mStartPos = start;
+        mGoalPos = end;
+    }
 
-RRTStar* mMyRRTStar = nullptr;
+    void buildStartEnd();
+    void buildSolution();
+    void buildAgent();
+    void updateAgent(float dt);
+    void buildRRTStar(vector<pair<glm::vec2, float>> obstacles);
+    void drawAgent();
+
+    glm::vec2 mStartPos;
+    glm::vec2 mGoalPos;
+
+    RRTStar* mMyRRTStar = nullptr;
+
+    Mesh2D* mStartMesh = nullptr;
+    Mesh2D* mEndMesh = nullptr;
+
+    Mesh2D* mAgentMesh = nullptr;
+
+    glm::vec3 mAgentPos = glm::vec3(0.f);
+    float mAgentDir = 0.f;
+
+    glm::vec3 mAimAt = glm::vec3(0.f);
+
+    vector<Mesh2D*> mSolutionMeshes;
+};
+
+void buildAgents();
+
+int mNumAgents = 4;
 int mNumVerts = 1000;
 
-glm::vec2 mStartPos = glm::vec2(0.f, mFloorHeight/2.f);
-glm::vec2 mGoalPos = glm::vec2(mFloorWidth, mFloorHeight/2.f);
-
-Mesh2D* mStartMesh = nullptr;
-Mesh2D* mEndMesh = nullptr;
 const char* mStartEndTexture = "startEndTexture.png";
 
-Mesh2D* mAgent = nullptr;
 float mAgentRadius = 8.f;
 float mAgentHeight = 1.f;
-glm::vec3 mAgentPos = glm::vec3(0.f, 0.f, 0.f);
-float mAgentDir = 0.f;
-glm::vec3 mAimAt = glm::vec3(0.f, 0.f, 0.f);
+
+
 float mAgentSpeed = 15.f;
 const char* mAgentTexture = "gradientTexture.jpg";
 
 float mSolutionMeshThickness = 1.f;
 const char* mSolutionTexture = "tealTexture.jpg";
-vector<Mesh2D*> mSolutionMeshes;
+
+vector<Agent*> mAgents;
 
