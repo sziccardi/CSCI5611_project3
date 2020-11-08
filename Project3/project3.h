@@ -153,7 +153,7 @@ struct Agent {
     void buildStartEnd();
     void buildSolution();
     void buildAgent();
-    void updateAgent(float dt);
+    void updateAgent(float dt, vector<Agent*> otherAgents);
     void buildRRTStar(vector<pair<glm::vec2, float>> obstacles);
     void drawAgent();
 
@@ -193,4 +193,6 @@ float mSolutionMeshThickness = 1.f;
 const char* mSolutionTexture = "tealTexture.jpg";
 
 vector<Agent*> mAgents;
+
+bool mRunAnim = false;
 

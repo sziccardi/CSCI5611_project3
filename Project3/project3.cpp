@@ -84,9 +84,14 @@ void keyOperations(void) {
     }
 
     if (keyStates['r']) { // If the 'a' key has been pressed 
+        mRunAnim = false;
         clearObstacles();
         buildEnvironment();
         buildAgents();
+    }
+
+    if (keyStates['p']) {
+        mRunAnim = !mRunAnim;
     }
 
     if (keyStates['b']) {
@@ -785,12 +790,27 @@ void Agent::buildAgent() {
 }
 
 
-void Agent::updateAgent(float dt) {
+void Agent::updateAgent(float dt, vector<Agent*> otherAgents) {
     if (mMyRRTStar && mAgentMesh) {
 
         mAimAt = mMyRRTStar->nextAvailablePos(glm::vec2(mAgentPos.x, mAgentPos.z), mAgentRadius);
 
         if (mAimAt.x > 0 && glm::length(mAgentPos - mAimAt) > 1.0f) {
+
+            for (auto otherAgent : otherAgents) {
+                if (otherAgent != this) {
+                    auto diff = otherAgent->mAgentPos - mAgentPos;
+                    if (glm::length(diff) < 2.5 * mAgentRadius) {
+                        auto force = 15.f * glm::normalize(diff) / glm::length(diff);
+                        for (int i = 0; i < mAgentMesh->getNumVerts(); i++) {
+                            auto myVert = mAgentMesh->getVertAt(i);
+                            myVert.mVelocity += force * dt;
+                            mAgentMesh->setVertAt(i, myVert);
+                        }
+                    }
+                }
+            }
+
             auto dir = normalize(mAimAt - mAgentPos);
             glm::vec3 oldVel = glm::vec3(0.f);
             for (int i = 0; i < mAgentMesh->getNumVerts(); i++) {
@@ -988,10 +1008,12 @@ void animLoop(int val) {
 
     framesSinceLast += 1;
 
-    //for (int i = 0; i < 16; i++) {
-    for (auto agent : mAgents) {
-        //update
-        agent->updateAgent(0.016f);
+    if (mRunAnim) {
+        //for (int i = 0; i < 16; i++) {
+        for (auto agent : mAgents) {
+            //update
+            agent->updateAgent(0.016f, mAgents);
+        }
     }
 
     glutPostRedisplay();
