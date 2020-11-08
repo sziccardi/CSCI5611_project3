@@ -399,6 +399,9 @@ void buildObstacle(glm::vec3 mypos) {
 }
 
 void clearObstacles() {
+
+    mObstacles.clear();
+
     auto it = mObstacleMeshes.begin();
     while (it != mObstacleMeshes.end())
     {
@@ -801,7 +804,7 @@ void Agent::updateAgent(float dt, vector<Agent*> otherAgents) {
                 if (otherAgent != this) {
                     auto diff = otherAgent->mAgentPos - mAgentPos;
                     if (glm::length(diff) < 2.5 * mAgentRadius) {
-                        auto force = 15.f * glm::normalize(diff) / glm::length(diff);
+                        auto force = -25.f * glm::normalize(diff) / glm::length(diff);
                         for (int i = 0; i < mAgentMesh->getNumVerts(); i++) {
                             auto myVert = mAgentMesh->getVertAt(i);
                             myVert.mVelocity += force * dt;
@@ -820,21 +823,24 @@ void Agent::updateAgent(float dt, vector<Agent*> otherAgents) {
                 if (glm::length(vert.mVelocity) > 0) vert.mVelocity = glm::normalize(vert.mVelocity);
 
                 float theta = 0.f;
-                if (glm::length(oldVel) > 0) {
+                if (glm::length(oldVel) > 0.f) {
                     auto myDot = glm::dot(mFloorTransformation * vert.mVelocity, mFloorTransformation * oldVel);
-                    if (abs(myDot - 1) < 0.001) {
+                    if (abs(myDot - 1) < 0.00001f) {
                         theta = 0.f;
                     }
                     else {
                         theta = acos(myDot);
                     }
                 }
+                else {
+                    theta = -acos(normalize(vert.mVelocity).x);
+                }
                 auto rotation = glm::mat3(0.f);
-                rotation[0][0] = 1.f;// cos(theta);
-                //rotation[0][2] = sin(theta);
+                rotation[0][0] = cos(theta);
+                rotation[0][2] = sin(theta);
                 rotation[1][1] = 1.f;
-                //rotation[2][0] = -sin(theta);
-                rotation[2][2] = 1.f;// cos(theta);
+                rotation[2][0] = -sin(theta);
+                rotation[2][2] = cos(theta);
 
                 auto oldPos = vert.mPosition;
                 oldPos -= mFloorTransformation * mAgentPos;
@@ -842,9 +848,10 @@ void Agent::updateAgent(float dt, vector<Agent*> otherAgents) {
                 oldPos += mFloorTransformation * mAgentPos;
                 vert.mPosition = oldPos + mFloorTransformation * vert.mVelocity * mAgentSpeed * dt;
                 mAgentMesh->setVertAt(i, vert);
+                oldVel = vert.mVelocity;
             }
 
-            mAgentPos += dir * mAgentSpeed * dt;
+            mAgentPos += oldVel * mAgentSpeed * dt;
         }
     }
 

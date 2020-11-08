@@ -124,7 +124,7 @@ void buildFloor();
 void calculateFloorTransform();
 
 Mesh2D* mFloor = nullptr;
-const char* mFloorTexture = "gradientTexture1.jpg";
+const char* mFloorTexture = "backgroundTexture2.png";
 float mFloorHeight = 300.f;
 float mFloorWidth = 300.f;
 glm::vec3 mFloorNormal = glm::vec3(0, 1, 0);
@@ -141,7 +141,8 @@ int mNumObstacles = 35;
 float mMaxRadius = 12.f;
 float mMinRadius = 1.f;
 float mObsHeight = 10.f;
-const char* mObstacleTexture = "obstacleTexture.jpg";
+//from wikipedia https://en.wikipedia.org/wiki/Galaxy#/media/File:NGC_4414_(NASA-med).jpg
+const char* mObstacleTexture = "galaxy.jpg";
 
 /* Planning things */
 struct Agent {
@@ -177,7 +178,7 @@ struct Agent {
 
 void buildAgents();
 
-int mNumAgents = 4;
+int mNumAgents = 1;
 int mNumVerts = 1000;
 
 const char* mStartEndTexture = "startEndTexture.png";
