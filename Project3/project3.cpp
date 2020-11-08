@@ -84,8 +84,16 @@ void keyOperations(void) {
     }
 
     if (keyStates['r']) { // If the 'a' key has been pressed 
+        clearObstacles();
         buildEnvironment();
         buildAgents();
+    }
+
+    if (keyStates['b']) {
+        for (auto agent : mAgents) {
+            agent->buildRRTStar(mObstacles);
+            agent->buildSolution();
+        }
     }
 
     //cout << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
@@ -96,29 +104,48 @@ void mouse(int button, int state, int x, int y) {
     if ((button == 3) || (button == 4)) { // It's a wheel event 
         // Each wheel event reports like a button click, GLUT_DOWN then GLUT_UP
         if (state == GLUT_UP) return; // Disregard redundant GLUT_UP events
-        printf("Scroll %s At %d %d\n", (button == 3) ? "Up" : "Down", x, y);
+        std::printf("Scroll %s At %d %d\n", (button == 3) ? "Up" : "Down", x, y);
     }
     else {  // normal button event
         // Mouse click, spawn particles
-        mMouseDown = (state == GLUT_DOWN);
-        
-        mMousePos = glm::vec2(-1.f, -1.f);
-        //printf("Button %s At %d %d\n", (state == GLUT_DOWN) ? "Down" : "Up", x, y);
-    }
-}
+       
+        glm::vec3 newCameraPos = glm::vec3(cameraPos.x, cameraPos.y, cameraPos.z);
+        glm::vec3 newCameraFront = glm::vec3(cameraFront.x, cameraFront.y, cameraFront.z);
+        glm::vec3 newCameraUp = glm::vec3(cameraUp.x, cameraUp.y, cameraUp.z);
+        glm::mat4 view = glm::lookAt(newCameraPos, newCameraPos + newCameraFront, newCameraUp);
 
-void drag(int x, int y) {
-    if (mMouseDown) {
-        auto screenPos = glm::vec2(x, y) - mMousePos;//glm::vec2(x / (float)glutGet(GLUT_WINDOW_WIDTH), y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+        glm::mat4 projection = glm::perspective(glm::radians(45.f), (float)glutGet(GLUT_WINDOW_WIDTH) / (float)glutGet(GLUT_WINDOW_HEIGHT), 0.1f, cameraDepth);
+
+        auto matToUse = projection * view;
+        auto matInv = glm::inverse(matToUse);
+
+        glm::vec4 val = glm::vec4(1.f);
+        val.x = (2.0f * ((float)(x - 0) / ((float)glutGet(GLUT_WINDOW_WIDTH) - 0))) - 1.0f;
+        val.y = 1.0f - (2.0f * ((float)(y - 0) / ((float)glutGet(GLUT_WINDOW_HEIGHT) - 0)));
         
-        mMousePos += screenPos;
+
+        auto actualPos = matInv * val;
+        actualPos.x /= actualPos.w;
+        actualPos.y /= actualPos.w;
+        actualPos.z /= actualPos.w;
+
+        ///floor equation
+        //y = 0
+        //ray equation
+        //pos = vec * t + cameraPos
+        float t = -cameraPos.y / actualPos.y;
+        glm::vec3 floorPos = glm::vec3(0.f);
+        floorPos.x = actualPos.x * t + cameraPos.x;
+        floorPos.z = actualPos.z * t + cameraPos.z;
+
+        buildObstacle(mFloorTransformation * floorPos);
+        //printf("Button %s At %d %d\n", (state == GLUT_DOWN) ? "Down" : "Up", x, y);
     }
 }
 
 void buildEnvironment() {
     calculateFloorTransform();
     buildFloor();
-    buildObstacles();
 }
 
 void buildFloor() {
@@ -210,6 +237,7 @@ void calculateFloorTransform() {
 }
 
 void buildObstacles() {
+
     mObstacles.clear();
     for (int i = 0; i < mNumObstacles; i++) {
         auto randX = rand() % (int)mFloorWidth;
@@ -220,21 +248,7 @@ void buildObstacles() {
     }
 
 
-    auto it = mObstacleMeshes.begin();
-    while (it != mObstacleMeshes.end())
-    {
-        if (true) {
-            // erase() invalidates the iterator, use returned iterator
-            auto i = *it;
-            it = mObstacleMeshes.erase(it);
-            delete(i);
-        }
-        // Notice that iterator is incremented only on the else part (why?)
-        else {
-            ++it;
-        }
-    }
-    mObstacleMeshes.clear();
+    clearObstacles();
 
     for (int i = 0; i < mObstacles.size(); i++) {
         float halfSideLength = sqrt(2.f) * mObstacles[i].second / 2.f;
@@ -304,6 +318,97 @@ void buildObstacles() {
 
         mObstacleMeshes.push_back(new Mesh2D(verts, indices, mObstacleTexture));
     }
+}
+
+void buildObstacle(glm::vec3 mypos) {
+    auto randRad = mMinRadius + rand() % (int)(mMaxRadius - mMinRadius);
+
+    mObstacles.push_back(make_pair(glm::vec2(mypos.x, mypos.z), randRad));
+
+    float halfSideLength = sqrt(2.f) * randRad / 2.f;
+    glm::vec2 centerpos = glm::vec2(mypos.x, mypos.z);
+
+    vector<Vertex> verts;
+    glm::vec3 pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, 0, centerpos.y + halfSideLength);
+    glm::vec3 norm = -1.f * normalize(pos);
+    glm::vec2 tex = glm::vec2(0.f, 1.f);
+    glm::vec3 vel = glm::vec3(0.f, 0.f, 0.f);
+    glm::vec3 acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, 0, centerpos.y + halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, mObsHeight, centerpos.y + halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, mObsHeight, centerpos.y + halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, 0, centerpos.y - halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, 0, centerpos.y - halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 0.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x + halfSideLength, mObsHeight, centerpos.y - halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(0.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+    pos = mFloorTransformation * glm::vec3(centerpos.x - halfSideLength, mObsHeight, centerpos.y - halfSideLength);
+    norm = -1.f * normalize(pos);
+    tex = glm::vec2(1.f, 1.f);
+    vel = glm::vec3(0.f, 0.f, 0.f);
+    acc = glm::vec3(0.f, 0.f, 0.f);
+    verts.push_back(Vertex(pos, norm, tex, vel, acc));
+
+
+    vector<unsigned int> indices;
+    //              back                front
+    indices = { 1, 0, 2, 2, 3, 0,  5, 4, 6, 6, 7, 4,  0, 1, 4, 4, 5, 1,  1, 2, 5, 5, 6, 2,  2, 3, 6, 6, 7, 3,  3, 0, 7, 7, 4, 0 };
+
+    mObstacleMeshes.push_back(new Mesh2D(verts, indices, mObstacleTexture));
+}
+
+void clearObstacles() {
+    auto it = mObstacleMeshes.begin();
+    while (it != mObstacleMeshes.end())
+    {
+        if (true) {
+            // erase() invalidates the iterator, use returned iterator
+            auto i = *it;
+            it = mObstacleMeshes.erase(it);
+            delete(i);
+        }
+        // Notice that iterator is incremented only on the else part (why?)
+        else {
+            ++it;
+        }
+    }
+    mObstacleMeshes.clear();
 }
 
 void buildAgents() {
@@ -377,9 +482,9 @@ void buildAgents() {
         }
 
         auto agent = new Agent(start, end);
-        agent->buildRRTStar(mObstacles);
+        //agent->buildRRTStar(mObstacles);
         agent->buildAgent();
-        agent->buildSolution();
+        //agent->buildSolution();
         agent->buildStartEnd();
 
         mAgents.push_back(agent);
@@ -911,7 +1016,6 @@ int main(int argc, char* argv[]) {
     glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses  
     glutKeyboardUpFunc(keyUp); // Tell GLUT to use the method "keyUp" for key up events
     glutMouseFunc(mouse);
-    glutMotionFunc(drag);
 
     //start the animation after 5 milliseconds as a buffer
     glutTimerFunc(5, animLoop, 1);

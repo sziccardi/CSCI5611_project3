@@ -53,10 +53,6 @@ void keyUp(unsigned char key, int x, int y);
 void keyOperations(void);
 
 void mouse(int button, int state, int x, int y);
-void drag(int x, int y);
-
-bool mMouseDown = false;
-glm::vec2 mMousePos = glm::vec2(-1.f, -1.f);
 
 int mShaderProgram;
 const char* vertexShaderSource = "#version 330 core\n"
@@ -136,6 +132,8 @@ glm::mat3 mFloorTransformation = glm::mat3();
 
 /* Obstacle things */
 void buildObstacles();
+void buildObstacle(glm::vec3 pos);
+void clearObstacles();
 
 vector<Mesh2D*> mObstacleMeshes;
 vector<pair<glm::vec2, float>> mObstacles;
